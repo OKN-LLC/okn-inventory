@@ -1,0 +1,14 @@
+{
+  "name": "OKN 在庫管理システム",
+  "short_name": "OKN在庫",
+  "description": "OKN合同会社 在庫管理・出荷指示書発行システム",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a3a5c",
+  "theme_color": "#1a3a5c",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
