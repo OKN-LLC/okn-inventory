@@ -335,19 +335,14 @@ async function doLogin() {
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
   if (!user) { document.getElementById('login-error').textContent = 'スタッフ名を入力してください'; return; }
-
-  // API URLが未設定なら簡易ローカルログイン
-  if (!API_URL) {
-    if (pass === 'Oknllc202603') {
-      state.user = user;
-      localStorage.setItem('okn_user', user);
-      showApp();
-    } else {
-      document.getElementById('login-error').textContent = 'パスワードが違います';
-    }
-    return;
+  if (pass === 'Oknllc202603') {
+    state.user = user;
+    localStorage.setItem('okn_user', user);
+    showApp();
+  } else {
+    document.getElementById('login-error').textContent = 'パスワードが違います';
   }
-
+}
   try {
     const r = await api({ action: 'login', user, password: pass });
     if (r.ok) {
