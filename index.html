@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OKN 在庫管理</title>
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OKN在庫">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--navy:#1a3a5c;--amber:#e8a020;--bg:#f4f6f9;--card:#ffffff;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--ok:#3b6d11;--ok-bg:#eaf3de;--low:#854f0b;--low-bg:#faeeda;--out:#a32d2d;--out-bg:#fcebeb;--info:#185fa5;--info-bg:#e6f1fb;--radius:12px;--safe-bottom:env(safe-area-inset-bottom,0px);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,'Hiragino Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none;}
+input,button,select,textarea{font-family:inherit;}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;background:var(--card);position:relative;overflow:hidden;}
+.topbar{background:var(--navy);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));flex-shrink:0;}
+.topbar-inner{display:flex;align-items:center;gap:10px;}
+.logo{width:34px;height:34px;background:var(--amber);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;}
+.topbar-title{flex:1;font-size:16px;font-weight:600;}
+.topbar-sub{font-size:10px;opacity:0.6;margin-top:1px;}
+.icon-btn{width:34px;height:34px;border:none;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px;}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.bottom-nav{background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding-bottom:var(--safe-bottom);}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;cursor:pointer;border:none;background:none;color:var(--muted);font-size:9px;}
+.bnav-item svg{width:22px;height:22px;}
+.bnav-item.active{color:var(--navy);}
+.screen{display:none;}
+.screen.active{display:block;}
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:32px 24px;background:var(--navy);}
+.login-logo{width:72px;height:72px;background:var(--amber);border-radius:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;color:#fff;margin-bottom:24px;}
+.login-title{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px;}
+.login-sub{color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:36px;}
+.login-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;}
+.l-input{width:100%;padding:13px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:15px;outline:none;}
+.l-input::placeholder{color:rgba(255,255,255,0.35);}
+.l-input:focus{border-color:var(--amber);}
+.btn-primary{width:100%;padding:14px;border-radius:10px;border:none;background:var(--amber);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
+.login-error{color:#f87171;font-size:13px;text-align:center;min-height:20px;}
+.summary-strip{background:var(--navy);padding:0 14px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.summary-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;}
+.summary-card .val{font-size:22px;font-weight:700;color:#fff;}
+.summary-card .lbl{font-size:9px;color:rgba(255,255,255,0.55);margin-top:2px;}
+.section-head{padding:14px 14px 6px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;}
+.section-head button{font-size:11px;color:var(--navy);background:none;border:none;cursor:pointer;font-weight:500;}
+.item-card{background:var(--card);margin:0 12px 8px;border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;cursor:pointer;}
+.item-row{display:flex;align-items:center;gap:10px;}
+.item-icon{width:40px;height:40px;border-radius:10px;background:var(--info-bg);color:var(--info);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+.item-icon.low{background:var(--low-bg);color:var(--low);}
+.item-icon.out{background:var(--out-bg);color:var(--out);}
+.item-info{flex:1;min-width:0;}
+.item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-sku{font-size:11px;color:var(--muted);margin-top:1px;}
+.stock-pill{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;flex-shrink:0;}
+.pill-ok{background:var(--ok-bg);color:var(--ok);}
+.pill-low{background:var(--low-bg);color:var(--low);}
+.pill-out{background:var(--out-bg);color:var(--out);}
+.stock-bar{margin-top:8px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.stock-bar-fill{height:100%;border-radius:2px;transition:width 0.3s;}
+.fab{position:sticky;bottom:16px;float:right;margin:8px 16px 8px 0;background:var(--amber);color:#fff;border:none;border-radius:28px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.form-wrap{padding:12px;}
+.form-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:14px;margin-bottom:10px;}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase;}
+.form-input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;outline:none;background:#f9fafb;color:var(--text);}
+.form-input:focus{border-color:var(--navy);background:#fff;}
+.field{margin-bottom:12px;}
+.field:last-child{margin-bottom:0;}
+.method-row{display:flex;gap:8px;}
+.method-btn{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 4px;font-size:12px;text-align:center;cursor:pointer;background:#f9fafb;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:500;}
+.method-btn.sel{border-color:var(--navy);background:var(--info-bg);color:var(--navy);}
+.method-btn svg{width:22px;height:22px;}
+.warn-box{background:var(--low-bg);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--low);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.action-btn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.action-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.log-tabs{display:flex;padding:12px 12px 6px;gap:6px;}
+.log-tab{padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#f9fafb;color:var(--muted);font-weight:500;}
+.log-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.log-item{background:var(--card);margin:0 12px 6px;border-radius:10px;border:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.log-info{flex:1;}
+.log-name{font-size:13px;font-weight:600;}
+.log-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+.log-qty{font-size:14px;font-weight:700;}
+.setting-section{margin:0 12px 12px;}
+.setting-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.setting-item{display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer;border-bottom:1px solid var(--border);}
+.setting-item:last-child{border-bottom:none;}
+.setting-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.setting-label{flex:1;font-size:14px;font-weight:500;}
+.setting-arrow{color:var(--muted);}
+.version-tag{text-align:center;padding:20px;font-size:12px;color:var(--muted);}
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-box{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:16px;padding-bottom:calc(16px + var(--safe-bottom));animation:slideUp 0.25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:14px;}
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--muted);flex-direction:column;gap:12px;font-size:13px;}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:14px;}
+#toast{position:absolute;bottom:calc(72px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-logo">O</div>
+  <div class="login-title">OKN 在庫管理</div>
+  <div class="login-sub">okn-godo.com</div>
+  <div class="login-form">
+    <input class="l-input" id="login-user" type="text" placeholder="スタッフ名（例：田中）" autocomplete="name">
+    <input class="l-input" id="login-pass" type="password" placeholder="パスワード">
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">O</div>
+      <div style="flex:1">
+        <div class="topbar-title" id="topbar-title">在庫一覧</div>
+        <div class="topbar-sub">okn-godo.com</div>
+      </div>
+      <button class="icon-btn" onclick="refreshData()" title="更新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="content">
+    <div id="screen-stock" class="screen active">
+      <div class="summary-strip">
+        <div class="summary-card"><div class="val" id="sum-total">—</div><div class="lbl">総SKU数</div></div>
+        <div class="summary-card"><div class="val" id="sum-warn" style="color:#facc80;">—</div><div class="lbl">在庫警告</div></div>
+        <div class="summary-card"><div class="val" id="sum-today">—</div><div class="lbl">本日出荷</div></div>
+      </div>
+      <div class="section-head"><span>在庫一覧</span><button onclick="openAddItem()">＋ 商品追加</button></div>
+      <div id="stock-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
+      <div style="height:80px;"></div>
+      <button class="fab" onclick="openShipmentForm()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        出荷指示を作成
+      </button>
+    </div>
+    <div id="screen-ship" class="screen"><div class="form-wrap" id="ship-form-content"></div></div>
+    <div id="screen-history" class="screen">
+      <div class="log-tabs">
+        <button class="log-tab active" onclick="filterLog('all',this)">すべて</button>
+        <button class="log-tab" onclick="filterLog('email',this)">メール</button>
+        <button class="log-tab" onclick="filterLog('fax',this)">FAX</button>
+        <button class="log-tab" onclick="filterLog('print',this)">印刷</button>
+      </div>
+      <div id="history-list"></div>
+      <div style="height:20px;"></div>
+    </div>
+    <div id="screen-settings" class="screen">
+      <div class="section-head" style="padding-top:16px;">アカウント</div>
+      <div class="setting-section">
+        <div class="setting-card">
+          <div class="setting-item"><div class="setting-icon" style="background:#e6f1fb;color:#185fa5;">👤</div><div class="setting-label" id="setting-username">—</div></div>
+          <div class="setting-item" onclick="doLogout()"><div class="setting-icon" style="background:#fcebeb;color:#a32d2d;">🚪</div><div class="setting-label">ログアウト</div><div class="setting-arrow">›</div></div>
+        </div>
+      </div>
+      <div class="section-head">ホーム画面に追加</div>
+      <div class="setting-section">
+        <div class="setting-card">
+          <div class="setting-item"><div class="setting-icon" style="background:#f4f6f9;">📱</div><div style="flex:1;font-size:13px;line-height:1.5;color:var(--muted);">iPhone: Safari → 共有ボタン → 「ホーム画面に追加」</div></div>
+        </div>
+      </div>
+      <div class="version-tag">OKN在庫管理 v3.0 · okn-godo.com</div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="bnav-item active" onclick="switchScreen('stock',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="7" height="7" rx="1"/><rect x="15" y="3" width="7" height="7" rx="1"/><rect x="2" y="14" width="7" height="7" rx="1"/><rect x="15" y="14" width="7" height="7" rx="1"/></svg>
+      在庫
+    </button>
+    <button class="bnav-item" onclick="switchScreen('ship',this);openShipmentForm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      出荷指示
+    </button>
+    <button class="bnav-item" onclick="switchScreen('history',this);loadHistory()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      履歴
+    </button>
+    <button class="bnav-item" onclick="switchScreen('settings',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      設定
+    </button>
+  </div>
+  <div id="toast"></div>
+  <div id="modal-root"></div>
+</div>
+
+<script>
+// ─── 設定 ───
+const API_URL = 'https://script.google.com/macros/s/AKfycby9tlHYStbkX17YlvOqmOtNT1MPxxqOELiLiBjMF3kEixjVnDdy3Xm7YBT5w3xi3mn1Xw/exec';
+const PASSWORD = 'Oknllc202603';
+let state = { user:'', items:[], logs:[], shipMethod:'email' };
+
+// ─── JSONPでAPIを呼ぶ（CORSを回避）───
+function apiJsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now();
+    params.callback = cbName;
+    const url = API_URL + '?' + new URLSearchParams(params).toString();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 10000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('network error')); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
+}
+
+// ─── 起動 ───
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('okn_user');
+  if (saved) { state.user = saved; showApp(); }
+});
+
+// ─── ログイン ───
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err  = document.getElementById('login-error');
+  err.textContent = '';
+  if (!user) { err.textContent = 'スタッフ名を入力してください'; return; }
+  if (pass !== PASSWORD) { err.textContent = 'パスワードが違います'; return; }
+  state.user = user;
+  localStorage.setItem('okn_user', user);
+  showApp();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('setting-username').textContent = state.user;
+  loadInventory();
+}
+
+function doLogout() {
+  if (!confirm('ログアウトしますか？')) return;
+  localStorage.removeItem('okn_user');
+  location.reload();
+}
+
+// ─── 画面切替 ───
+function switchScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  btn.classList.add('active');
+  const titles = { stock:'在庫一覧', ship:'出荷指示書', history:'出荷履歴', settings:'設定' };
+  document.getElementById('topbar-title').textContent = titles[name] || '';
+}
+
+// ─── 在庫 ───
+async function loadInventory() {
+  document.getElementById('stock-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  try {
+    const r = await apiJsonp({ action:'getInventory' });
+    if (r.ok) state.items = r.items;
+    else state.items = [];
+  } catch(e) {
+    state.items = [];
+  }
+  renderInventory();
+}
+
+function renderInventory() {
+  const items = state.items;
+  document.getElementById('sum-total').textContent = items.length;
+  document.getElementById('sum-warn').textContent  = items.filter(i => i.stock <= i.minStock).length;
+  document.getElementById('sum-today').textContent = state.logs.filter(l => l.date && l.date.startsWith(new Date().toISOString().slice(0,10).replace(/-/g,'/'))).length || '—';
+  if (!items.length) {
+    document.getElementById('stock-list').innerHTML = '<div class="empty">商品がありません<br>スプレッドシートを確認してください</div>';
+    return;
+  }
+  document.getElementById('stock-list').innerHTML = items.map(item => {
+    const pct    = item.minStock > 0 ? Math.min(100, Math.round(item.stock / (item.minStock * 3) * 100)) : Math.min(100, item.stock);
+    const status = item.stock === 0 ? 'out' : item.stock <= item.minStock ? 'low' : 'ok';
+    const color  = status === 'ok' ? '#639922' : status === 'low' ? '#ef9f27' : '#e24b4a';
+    return '<div class="item-card" onclick="openItemDetail(\'' + esc(item.sku) + '\')">' +
+      '<div class="item-row">' +
+      '<div class="item-icon ' + status + '">📦</div>' +
+      '<div class="item-info"><div class="item-name">' + esc(item.name) + '</div><div class="item-sku">SKU: ' + esc(item.sku) + '</div></div>' +
+      '<div class="stock-pill pill-' + status + '">' + item.stock + esc(item.unit) + '</div>' +
+      '</div>' +
+      '<div class="stock-bar"><div class="stock-bar-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+      '</div>';
+  }).join('');
+}
+
+function refreshData() { toast('更新中…'); loadInventory(); }
+
+// ─── 商品詳細 ───
+function openItemDetail(sku) {
+  const item = state.items.find(i => i.sku === sku);
+  if (!item) return;
+  const status = item.stock === 0 ? 'out' : item.stock <= item.minStock ? 'low' : 'ok';
+  showModal(
+    '<div class="item-row" style="margin-bottom:14px;">' +
+    '<div class="item-icon ' + status + '" style="width:48px;height:48px;font-size:24px;">📦</div>' +
+    '<div class="item-info"><div class="item-name" style="font-size:16px;">' + esc(item.name) + '</div><div class="item-sku">SKU: ' + esc(item.sku) + '</div></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">' +
+    '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.stock + '</div><div style="font-size:11px;color:var(--muted);">現在庫</div></div>' +
+    '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.minStock + '</div><div style="font-size:11px;color:var(--muted);">最低在庫</div></div>' +
+    '</div>' +
+    '<div class="field"><div class="form-label">入庫数を追加</div>' +
+    '<div style="display:flex;gap:8px;"><input class="form-input" type="number" id="add-qty" placeholder="数量" style="flex:1;" min="1">' +
+    '<button class="action-btn" style="width:auto;padding:10px 16px;font-size:13px;" onclick="addStock(\'' + esc(item.sku) + '\')">入庫</button></div></div>' +
+    '<button class="action-btn" style="margin-top:10px;" onclick="closeModal();openShipmentFormWithSku(\'' + esc(item.sku) + '\')">この商品で出荷指示を作成</button>',
+    item.name);
+}
+
+async function addStock(sku) {
+  const qty = Number(document.getElementById('add-qty').value);
+  if (!qty || qty <= 0) { toast('数量を入力してください'); return; }
+  try {
+    const r = await apiJsonp({ action:'updateStock', sku, delta:qty });
+    if (r.ok) { const item = state.items.find(i => i.sku === sku); if (item) item.stock = r.newStock; closeModal(); renderInventory(); toast('✓ 入庫しました（現在庫: ' + r.newStock + '）'); }
+    else toast('エラー: ' + r.error);
+  } catch(e) { toast('通信エラーが発生しました'); }
+}
+
+// ─── 商品追加 ───
+function openAddItem() {
+  showModal(
+    '<div class="field"><div class="form-label">SKUコード</div><input class="form-input" id="new-sku" placeholder="例: OKN-004"></div>' +
+    '<div class="field"><div class="form-label">商品名</div><input class="form-input" id="new-name" placeholder="例: 製品D"></div>' +
+    '<div class="field"><div class="form-label">初期在庫数</div><input class="form-input" type="number" id="new-stock" placeholder="0"></div>' +
+    '<div class="field"><div class="form-label">最低在庫数（警告ライン）</div><input class="form-input" type="number" id="new-min" placeholder="10"></div>' +
+    '<div class="field"><div class="form-label">単位</div><input class="form-input" id="new-unit" value="枚"></div>' +
+    '<button class="action-btn" onclick="submitAddItem()">追加する</button>',
+    '商品を追加');
+}
+
+async function submitAddItem() {
+  const data = { action:'addItem', sku:document.getElementById('new-sku').value.trim(), name:document.getElementById('new-name').value.trim(), stock:document.getElementById('new-stock').value||0, minStock:document.getElementById('new-min').value||0, unit:document.getElementById('new-unit').value||'枚' };
+  if (!data.sku || !data.name) { toast('SKUと商品名は必須です'); return; }
+  try {
+    const r = await apiJsonp(data);
+    if (r.ok) { closeModal(); await loadInventory(); toast('✓ 商品を追加しました'); }
+    else toast('エラー: ' + r.error);
+  } catch(e) { toast('通信エラーが発生しました'); }
+}
+
+// ─── 出荷フォーム ───
+function openShipmentForm() { renderShipmentForm(''); }
+function openShipmentFormWithSku(sku) { switchScreen('ship', document.querySelectorAll('.bnav-item')[1]); renderShipmentForm(sku); }
+
+function renderShipmentForm(pre) {
+  const opts = state.items.map(i => '<option value="' + esc(i.sku) + '"' + (i.sku===pre?' selected':'') + '>' + esc(i.name) + ' (残' + i.stock + esc(i.unit) + ')</option>').join('');
+  document.getElementById('ship-form-content').innerHTML =
+    '<div class="form-card">' +
+    '<div class="field"><div class="form-label">商品</div><select class="form-input" id="ship-sku" onchange="updateShipWarn()">' + opts + '</select></div>' +
+    '<div class="field"><div class="form-label">数量</div><input class="form-input" type="number" id="ship-qty" placeholder="0" min="1" oninput="updateShipWarn()"></div>' +
+    '<div class="field"><div class="form-label">出荷先</div><input class="form-input" id="ship-dest" placeholder="株式会社〇〇"></div>' +
+    '</div>' +
+    '<div id="ship-warn" style="display:none;" class="warn-box">⚠ <span id="ship-warn-txt"></span></div>' +
+    '<div class="form-card">' +
+    '<div class="field"><div class="form-label">出力方法</div>' +
+    '<div class="method-row">' +
+    '<div class="method-btn sel" id="m-email" onclick="selMethod(\'email\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>メール</div>' +
+    '<div class="method-btn" id="m-fax" onclick="selMethod(\'fax\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="14" height="14" rx="1"/><path d="M16 2h4v4"/><path d="M16 6h4"/></svg>FAX</div>' +
+    '<div class="method-btn" id="m-print" onclick="selMethod(\'print\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>印刷</div>' +
+    '</div></div>' +
+    '<div class="field" id="email-field"><div class="form-label">送信先メール</div><input class="form-input" type="email" id="ship-email" placeholder="client@example.com"></div>' +
+    '<div class="field" id="fax-field" style="display:none;"><div class="form-label">FAX番号</div><input class="form-input" type="tel" id="ship-fax" placeholder="06-XXXX-XXXX"></div>' +
+    '<div class="field"><div class="form-label">備考（任意）</div><input class="form-input" id="ship-memo" placeholder="メモ"></div>' +
+    '</div>' +
+    '<button class="action-btn" id="ship-btn" onclick="submitShipment()">' +
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
+    '発行して在庫を更新</button><div style="height:20px;"></div>';
+  state.shipMethod = 'email';
+}
+
+function selMethod(m) {
+  state.shipMethod = m;
+  ['email','fax','print'].forEach(k => document.getElementById('m-'+k).classList.toggle('sel', k===m));
+  document.getElementById('email-field').style.display = m==='email' ? '' : 'none';
+  document.getElementById('fax-field').style.display   = m==='fax'   ? '' : 'none';
+}
+
+function updateShipWarn() {
+  const skuEl = document.getElementById('ship-sku'); if (!skuEl) return;
+  const item = state.items.find(i => i.sku === skuEl.value);
+  const qty  = Number(document.getElementById('ship-qty').value) || 0;
+  if (!item || qty === 0) { document.getElementById('ship-warn').style.display = 'none'; return; }
+  const after = item.stock - qty;
+  const btn = document.getElementById('ship-btn');
+  if (after < 0) {
+    document.getElementById('ship-warn-txt').textContent = '在庫不足！現在庫' + item.stock + item.unit + ' < 指示数' + qty + item.unit;
+    document.getElementById('ship-warn').style.display = 'flex'; btn.disabled = true;
+  } else if (after <= item.minStock) {
+    document.getElementById('ship-warn-txt').textContent = '発行後 残' + after + item.unit + '（最低在庫' + item.minStock + 'を下回ります）';
+    document.getElementById('ship-warn').style.display = 'flex'; btn.disabled = false;
+  } else {
+    document.getElementById('ship-warn').style.display = 'none'; btn.disabled = false;
+  }
+}
+
+async function submitShipment() {
+  const sku   = document.getElementById('ship-sku').value;
+  const qty   = Number(document.getElementById('ship-qty').value);
+  const dest  = document.getElementById('ship-dest').value.trim();
+  const email = document.getElementById('ship-email') ? document.getElementById('ship-email').value.trim() : '';
+  const memo  = document.getElementById('ship-memo').value.trim();
+  const item  = state.items.find(i => i.sku === sku);
+  if (!qty || qty <= 0) { toast('数量を入力してください'); return; }
+  if (!dest) { toast('出荷先を入力してください'); return; }
+  if (state.shipMethod === 'email' && !email) { toast('メールアドレスを入力してください'); return; }
+  if (!item || item.stock < qty) { toast('在庫が不足しています'); return; }
+  const btn = document.getElementById('ship-btn');
+  btn.disabled = true; btn.textContent = '処理中…';
+  try {
+    const r = await apiJsonp({ action:'issueShipment', sku, qty, dest, memo, method:state.shipMethod, destEmail:email, staff:state.user, unit:item.unit });
+    if (r.ok) {
+      item.stock = r.newStock; renderInventory();
+      toast('✓ ' + r.shipNo + ' 発行しました');
+      if (state.shipMethod === 'print') printShipment(item, qty, dest, memo, r.shipNo);
+      switchScreen('stock', document.querySelectorAll('.bnav-item')[0]);
+    } else { toast('エラー: ' + r.error); btn.disabled = false; btn.textContent = '発行して在庫を更新'; }
+  } catch(e) { toast('通信エラーが発生しました'); btn.disabled = false; btn.textContent = '発行して在庫を更新'; }
+}
+
+function printShipment(item, qty, dest, memo, shipNo) {
+  const now = new Date().toLocaleString('ja-JP');
+  const w = window.open('', '_blank');
+  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>出荷指示書</title><style>body{font-family:-apple-system,sans-serif;padding:32px;max-width:600px;}h1{font-size:20px;border-bottom:2px solid #1a3a5c;padding-bottom:8px;color:#1a3a5c;}table{width:100%;border-collapse:collapse;margin-top:16px;}td{padding:10px 12px;border:1px solid #e5e7eb;font-size:14px;}td:first-child{background:#f4f6f9;font-weight:600;width:35%;}@media print{button{display:none!important;}}</style></head><body><h1>出荷指示書</h1><table><tr><td>出荷番号</td><td>' + shipNo + '</td></tr><tr><td>発行日時</td><td>' + now + '</td></tr><tr><td>出荷先</td><td>' + esc(dest) + '</td></tr><tr><td>商品名</td><td>' + esc(item.name) + '</td></tr><tr><td>SKU</td><td>' + esc(item.sku) + '</td></tr><tr><td>数量</td><td>' + qty + ' ' + esc(item.unit) + '</td></tr><tr><td>発行後在庫</td><td>' + item.stock + ' ' + esc(item.unit) + '</td></tr><tr><td>担当者</td><td>' + esc(state.user) + '</td></tr><tr><td>備考</td><td>' + (esc(memo)||'—') + '</td></tr></table><div style="margin-top:24px;"><button onclick="window.print()" style="background:#1a3a5c;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">印刷する</button></div></body></html>');
+  w.document.close(); setTimeout(() => w.print(), 300);
+}
+
+// ─── 履歴 ───
+async function loadHistory() {
+  document.getElementById('history-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  try { const r = await apiJsonp({ action:'getHistory' }); if (r.ok) state.logs = r.logs; } catch(e) {}
+  renderHistory('all');
+}
+
+function filterLog(method, btn) {
+  document.querySelectorAll('.log-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); renderHistory(method);
+}
+
+function renderHistory(filter) {
+  const logs = filter === 'all' ? state.logs : state.logs.filter(l => l.method === filter);
+  if (!logs.length) { document.getElementById('history-list').innerHTML = '<div class="empty">履歴がありません</div>'; return; }
+  const ml = { email:'メール', fax:'FAX', print:'印刷' };
+  document.getElementById('history-list').innerHTML = logs.map(l =>
+    '<div class="log-item"><div class="log-dot" style="background:' + (l.qty<0?'#185fa5':'#3b6d11') + ';"></div>' +
+    '<div class="log-info"><div class="log-name">' + esc(l.name) + '</div><div class="log-meta">' + esc(l.date) + ' · ' + (ml[l.method]||l.method) + ' · ' + esc(l.dest) + ' · ' + esc(l.staff) + '</div></div>' +
+    '<div class="log-qty" style="color:' + (l.qty<0?'#185fa5':'#3b6d11') + ';">' + (l.qty>0?'+':'') + l.qty + '</div></div>'
+  ).join('');
+}
+
+// ─── モーダル ───
+function showModal(html, title) {
+  document.getElementById('modal-root').innerHTML = '<div class="modal-overlay"><div class="modal-box"><div class="modal-handle"></div><div class="modal-title">' + esc(title) + '</div>' + html + '</div></div>';
+  document.querySelector('.modal-overlay').addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) closeModal(); });
+}
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+// ─── トースト ───
+let tt;
+function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2800); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+
+</body>
+</html>
