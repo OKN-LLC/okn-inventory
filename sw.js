@@ -1,6 +1,6 @@
-// OKN在庫管理 Service Worker v1.0
-const CACHE = 'okn-inventory-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+// OKN在庫管理 Service Worker v1.1
+const CACHE = 'okn-inventory-v2';
+const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -29,7 +29,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });

@@ -39,11 +39,27 @@ input,button,select,textarea{font-family:inherit;}
 .btn-primary{width:100%;padding:14px;border-radius:10px;border:none;background:var(--amber);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
 .login-error{color:#f87171;font-size:13px;text-align:center;min-height:20px;}
 .summary-strip{background:var(--navy);padding:0 14px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.summary-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;}
+.summary-card{background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;cursor:pointer;transition:background .15s;}
+.summary-card:active{background:rgba(255,255,255,0.18);}
+.summary-card.active{background:rgba(255,255,255,0.25);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,0.45);}
 .summary-card .val{font-size:22px;font-weight:700;color:#fff;}
 .summary-card .lbl{font-size:9px;color:rgba(255,255,255,0.55);margin-top:2px;}
 .section-head{padding:14px 14px 6px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;}
 .section-head button{font-size:11px;color:var(--navy);background:none;border:none;cursor:pointer;font-weight:500;}
+.search-bar{margin:0 14px 8px;position:relative;}
+.search-bar input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px 9px 34px;font-size:13px;background:#f9fafb;outline:none;}
+.search-bar input:focus{border-color:var(--navy);background:#fff;}
+.search-bar .s-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px;}
+.filter-chips{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;}
+.filter-chip{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid var(--border);background:#f9fafb;color:var(--muted);cursor:pointer;white-space:nowrap;}
+.filter-chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.sync-tag{padding:0 14px 8px;font-size:10px;color:var(--muted);}
+.retry-box{padding:40px 24px;text-align:center;color:var(--muted);font-size:13px;}
+.retry-box button{display:block;margin:14px auto 0;background:var(--navy);color:#fff;border:none;border-radius:20px;padding:9px 22px;font-size:12.5px;font-weight:600;cursor:pointer;}
+.qty-stepper{display:flex;align-items:center;gap:6px;}
+.qty-stepper input{text-align:center;}
+.qty-step-btn{width:38px;height:38px;flex-shrink:0;border:1.5px solid var(--border);border-radius:8px;background:#f9fafb;font-size:18px;font-weight:600;color:var(--navy);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qty-step-btn:active{background:var(--info-bg);}
 .item-card{background:var(--card);margin:0 12px 8px;border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;cursor:pointer;}
 .item-row{display:flex;align-items:center;gap:10px;}
 .item-icon{width:40px;height:40px;border-radius:10px;background:var(--info-bg);color:var(--info);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
@@ -133,11 +149,19 @@ input,button,select,textarea{font-family:inherit;}
   <div class="content">
     <div id="screen-stock" class="screen active">
       <div class="summary-strip">
-        <div class="summary-card"><div class="val" id="sum-total">—</div><div class="lbl">総SKU数</div></div>
-        <div class="summary-card"><div class="val" id="sum-warn" style="color:#facc80;">—</div><div class="lbl">在庫警告</div></div>
-        <div class="summary-card"><div class="val" id="sum-today">—</div><div class="lbl">本日出荷</div></div>
+        <div class="summary-card active" id="card-all" onclick="setStockFilter('all')"><div class="val" id="sum-total">—</div><div class="lbl">総SKU数</div></div>
+        <div class="summary-card" id="card-warn" onclick="setStockFilter('warn')"><div class="val" id="sum-warn" style="color:#facc80;">—</div><div class="lbl">在庫警告</div></div>
+        <div class="summary-card" id="card-today" onclick="switchScreen('history',document.querySelectorAll('.bnav-item')[2]);loadHistory()"><div class="val" id="sum-today">—</div><div class="lbl">本日出荷</div></div>
       </div>
       <div class="section-head"><span>在庫一覧</span><button onclick="openAddItem()">＋ 商品追加</button></div>
+      <div class="search-bar"><span class="s-icon">🔍</span><input type="text" id="search-input" placeholder="商品名・SKUで検索" oninput="onSearchInput(this.value)"></div>
+      <div class="filter-chips">
+        <button class="filter-chip active" data-f="all" onclick="setStockFilter('all')">すべて</button>
+        <button class="filter-chip" data-f="warn" onclick="setStockFilter('warn')">要警告</button>
+        <button class="filter-chip" data-f="out" onclick="setStockFilter('out')">在庫切れ</button>
+        <button class="filter-chip" data-f="low_first" onclick="setStockFilter('low_first')">残り少ない順</button>
+      </div>
+      <div class="sync-tag" id="sync-tag"></div>
       <div id="stock-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
       <div style="height:80px;"></div>
       <button class="fab" onclick="switchScreen('ship',document.querySelectorAll('.bnav-item')[1]);openShipmentForm()">
@@ -170,7 +194,7 @@ input,button,select,textarea{font-family:inherit;}
           <div class="setting-item"><div class="setting-icon" style="background:#f4f6f9;">📱</div><div style="flex:1;font-size:13px;line-height:1.5;color:var(--muted);">iPhone: Safari → 共有ボタン → 「ホーム画面に追加」</div></div>
         </div>
       </div>
-      <div class="version-tag">OKN在庫管理 v3.0 · okn-godo.com</div>
+      <div class="version-tag">OKN在庫管理 v3.1 · okn-godo.com</div>
     </div>
   </div>
   <div class="bottom-nav">
@@ -199,7 +223,7 @@ input,button,select,textarea{font-family:inherit;}
 // ─── 設定 ───
 const API_URL = 'https://script.google.com/macros/s/AKfycby9tlHYStbkX17YlvOqmOtNT1MPxxqOELiLiBjMF3kEixjVnDdy3Xm7YBT5w3xi3mn1Xw/exec';
 const PASSWORD = 'Oknllc202603';
-let state = { user:'', items:[], logs:[], shipMethod:'email' };
+let state = { user:'', items:[], logs:[], shipMethod:'email', searchQuery:'', stockFilter:'all' };
 
 // ─── JSONPでAPIを呼ぶ（CORSを回避）───
 function apiJsonp(params) {
@@ -245,6 +269,7 @@ function showApp() {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('setting-username').textContent = state.user;
   loadInventory();
+  loadHistory(); // 出荷先の入力補助・本日出荷数のため、裏で先読みしておく
 }
 
 function doLogout() {
@@ -264,16 +289,71 @@ function switchScreen(name, btn) {
 }
 
 // ─── 在庫 ───
+const CACHE_ITEMS_KEY = 'okn_cache_items';
+const CACHE_TIME_KEY  = 'okn_cache_time';
+
 async function loadInventory() {
-  document.getElementById('stock-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  // キャッシュがあれば即座に表示し、裏で最新データに更新する（体感速度の改善）
+  if (!state.items.length) {
+    const cached = localStorage.getItem(CACHE_ITEMS_KEY);
+    if (cached) {
+      try { state.items = JSON.parse(cached); renderInventory(); updateSyncTag(false, true); } catch(e) {}
+    } else {
+      document.getElementById('stock-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+    }
+  }
+  let failed = false;
   try {
     const r = await apiJsonp({ action:'getInventory' });
-    if (r.ok) state.items = r.items;
-    else state.items = [];
-  } catch(e) {
-    state.items = [];
+    if (r.ok) {
+      state.items = r.items;
+      localStorage.setItem(CACHE_ITEMS_KEY, JSON.stringify(r.items));
+      localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
+    } else failed = true;
+  } catch(e) { failed = true; }
+
+  if (failed && !state.items.length) {
+    document.getElementById('stock-list').innerHTML = '<div class="retry-box">読み込みに失敗しました<br>通信状態を確認してください<button onclick="loadInventory()">再読み込み</button></div>';
+    document.getElementById('sync-tag').textContent = '';
+    return;
   }
+  updateSyncTag(failed);
   renderInventory();
+}
+
+function updateSyncTag(failed, stale) {
+  const tagEl = document.getElementById('sync-tag');
+  if (!tagEl) return;
+  if (failed) { tagEl.textContent = '⚠ 更新に失敗しました（前回のデータを表示中）'; return; }
+  if (stale) { tagEl.textContent = '前回のデータを表示中…更新しています'; return; }
+  const t = localStorage.getItem(CACHE_TIME_KEY);
+  tagEl.textContent = t ? '最終更新: ' + new Date(Number(t)).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '';
+}
+
+function getFilteredItems() {
+  let items = state.items.slice();
+  const q = (state.searchQuery || '').trim().toLowerCase();
+  if (q) items = items.filter(i => (i.name||'').toLowerCase().includes(q) || (i.sku||'').toLowerCase().includes(q));
+  const f = state.stockFilter || 'all';
+  if (f === 'warn') items = items.filter(i => i.stock <= i.minStock);
+  else if (f === 'out') items = items.filter(i => i.stock === 0);
+  else if (f === 'low_first') items = items.sort((a,b) => a.stock - b.stock);
+  return items;
+}
+
+function setStockFilter(f) {
+  state.stockFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.f === f));
+  const cardAll = document.getElementById('card-all'), cardWarn = document.getElementById('card-warn');
+  if (cardAll) cardAll.classList.toggle('active', f === 'all');
+  if (cardWarn) cardWarn.classList.toggle('active', f === 'warn');
+  renderInventory();
+}
+
+let searchDebounceTimer;
+function onSearchInput(v) {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => { state.searchQuery = v; renderInventory(); }, 150);
 }
 
 function renderInventory() {
@@ -281,11 +361,18 @@ function renderInventory() {
   document.getElementById('sum-total').textContent = items.length;
   document.getElementById('sum-warn').textContent  = items.filter(i => i.stock <= i.minStock).length;
   document.getElementById('sum-today').textContent = state.logs.filter(l => l.date && l.date.startsWith(new Date().toISOString().slice(0,10).replace(/-/g,'/'))).length || '—';
+  const listEl = document.getElementById('stock-list');
+  if (!listEl) return;
   if (!items.length) {
-    document.getElementById('stock-list').innerHTML = '<div class="empty">商品がありません<br>スプレッドシートを確認してください</div>';
+    listEl.innerHTML = '<div class="empty">商品がありません<br>スプレッドシートを確認してください</div>';
     return;
   }
-  document.getElementById('stock-list').innerHTML = items.map(item => {
+  const list = getFilteredItems();
+  if (!list.length) {
+    listEl.innerHTML = '<div class="empty">条件に一致する商品がありません</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(item => {
     const pct    = item.minStock > 0 ? Math.min(100, Math.round(item.stock / (item.minStock * 3) * 100)) : Math.min(100, item.stock);
     const status = item.stock === 0 ? 'out' : item.stock <= item.minStock ? 'low' : 'ok';
     const color  = status === 'ok' ? '#639922' : status === 'low' ? '#ef9f27' : '#e24b4a';
@@ -302,6 +389,13 @@ function renderInventory() {
 
 function refreshData() { toast('更新中…'); loadInventory(); }
 
+function stepQty(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = Number(el.value) || 0;
+  el.value = cur + delta;
+}
+
 // ─── 商品詳細 ───
 function openItemDetail(sku) {
   const item = state.items.find(i => i.sku === sku);
@@ -316,19 +410,23 @@ function openItemDetail(sku) {
     '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.stock + '</div><div style="font-size:11px;color:var(--muted);">現在庫</div></div>' +
     '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.minStock + '</div><div style="font-size:11px;color:var(--muted);">最低在庫</div></div>' +
     '</div>' +
-    '<div class="field"><div class="form-label">入庫数を追加</div>' +
-    '<div style="display:flex;gap:8px;"><input class="form-input" type="number" id="add-qty" placeholder="数量" style="flex:1;" min="1">' +
-    '<button class="action-btn" style="width:auto;padding:10px 16px;font-size:13px;" onclick="addStock(\'' + esc(item.sku) + '\')">入庫</button></div></div>' +
-    '<button class="action-btn" style="margin-top:10px;" onclick="closeModal();openShipmentFormWithSku(\'' + esc(item.sku) + '\')">この商品で出荷指示を作成</button>',
+    '<div class="field"><div class="form-label">在庫を調整（入庫はプラス、訂正はマイナス）</div>' +
+    '<div class="qty-stepper"><button type="button" class="qty-step-btn" onclick="stepQty(\'add-qty\',-1)">−</button>' +
+    '<input class="form-input" type="number" id="add-qty" placeholder="数量">' +
+    '<button type="button" class="qty-step-btn" onclick="stepQty(\'add-qty\',1)">＋</button></div>' +
+    '<button class="action-btn" style="margin-top:8px;" onclick="addStock(\'' + esc(item.sku) + '\')">在庫を更新</button></div>' +
+    '<button class="action-btn" style="margin-top:10px;background:var(--card);color:var(--navy);border:1.5px solid var(--navy);" onclick="closeModal();openShipmentFormWithSku(\'' + esc(item.sku) + '\')">この商品で出荷指示を作成</button>',
     item.name);
 }
 
 async function addStock(sku) {
   const qty = Number(document.getElementById('add-qty').value);
-  if (!qty || qty <= 0) { toast('数量を入力してください'); return; }
+  const item = state.items.find(i => i.sku === sku);
+  if (!qty) { toast('数量を入力してください'); return; }
+  if (item && item.stock + qty < 0) { toast('在庫がマイナスになります'); return; }
   try {
     const r = await apiJsonp({ action:'updateStock', sku, delta:qty });
-    if (r.ok) { const item = state.items.find(i => i.sku === sku); if (item) item.stock = r.newStock; closeModal(); renderInventory(); toast('✓ 入庫しました（現在庫: ' + r.newStock + '）'); }
+    if (r.ok) { if (item) item.stock = r.newStock; closeModal(); renderInventory(); toast('✓ 更新しました（現在庫: ' + r.newStock + '）'); }
     else toast('エラー: ' + r.error);
   } catch(e) { toast('通信エラーが発生しました'); }
 }
@@ -348,6 +446,7 @@ function openAddItem() {
 async function submitAddItem() {
   const data = { action:'addItem', sku:document.getElementById('new-sku').value.trim(), name:document.getElementById('new-name').value.trim(), stock:document.getElementById('new-stock').value||0, minStock:document.getElementById('new-min').value||0, unit:document.getElementById('new-unit').value||'枚' };
   if (!data.sku || !data.name) { toast('SKUと商品名は必須です'); return; }
+  if (state.items.some(i => i.sku === data.sku)) { toast('このSKUは既に登録されています'); return; }
   try {
     const r = await apiJsonp(data);
     if (r.ok) { closeModal(); await loadInventory(); toast('✓ 商品を追加しました'); }
@@ -359,13 +458,23 @@ async function submitAddItem() {
 function openShipmentForm() { renderShipmentForm(''); }
 function openShipmentFormWithSku(sku) { switchScreen('ship', document.querySelectorAll('.bnav-item')[1]); renderShipmentForm(sku); }
 
+function getRecentDestinations() {
+  const seen = new Set(); const out = [];
+  for (const l of state.logs) {
+    if (l.dest && !seen.has(l.dest)) { seen.add(l.dest); out.push(l.dest); }
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 function renderShipmentForm(pre) {
   const opts = state.items.map(i => '<option value="' + esc(i.sku) + '"' + (i.sku===pre?' selected':'') + '>' + esc(i.name) + ' (残' + i.stock + esc(i.unit) + ')</option>').join('');
+  const destOpts = getRecentDestinations().map(d => '<option value="' + esc(d) + '">').join('');
   document.getElementById('ship-form-content').innerHTML =
     '<div class="form-card">' +
     '<div class="field"><div class="form-label">商品</div><select class="form-input" id="ship-sku" onchange="updateShipWarn()">' + opts + '</select></div>' +
-    '<div class="field"><div class="form-label">数量</div><input class="form-input" type="number" id="ship-qty" placeholder="0" min="1" oninput="updateShipWarn()"></div>' +
-    '<div class="field"><div class="form-label">出荷先</div><input class="form-input" id="ship-dest" placeholder="株式会社〇〇"></div>' +
+    '<div class="field"><div class="form-label">数量</div><div class="qty-stepper"><button type="button" class="qty-step-btn" onclick="stepQty(\'ship-qty\',-1);updateShipWarn()">−</button><input class="form-input" type="number" id="ship-qty" placeholder="0" min="1" oninput="updateShipWarn()"><button type="button" class="qty-step-btn" onclick="stepQty(\'ship-qty\',1);updateShipWarn()">＋</button></div></div>' +
+    '<div class="field"><div class="form-label">出荷先</div><input class="form-input" id="ship-dest" list="dest-list" placeholder="株式会社〇〇"><datalist id="dest-list">' + destOpts + '</datalist></div>' +
     '</div>' +
     '<div id="ship-warn" style="display:none;" class="warn-box">⚠ <span id="ship-warn-txt"></span></div>' +
     '<div class="form-card">' +
