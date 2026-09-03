@@ -177,6 +177,9 @@ input,button,select,textarea{font-family:inherit;}
         <button class="log-tab" onclick="filterLog('email',this)">メール</button>
         <button class="log-tab" onclick="filterLog('fax',this)">FAX</button>
         <button class="log-tab" onclick="filterLog('print',this)">印刷</button>
+        <button class="log-tab" onclick="filterLog('add',this)">追加</button>
+        <button class="log-tab" onclick="filterLog('adjust',this)">調整</button>
+        <button class="log-tab" onclick="filterLog('delete',this)">削除</button>
       </div>
       <div id="history-list"></div>
       <div style="height:20px;"></div>
@@ -416,8 +419,30 @@ function openItemDetail(sku) {
     '<input class="form-input" type="number" id="add-qty" placeholder="数量">' +
     '<button type="button" class="qty-step-btn" onclick="stepQty(\'add-qty\',1)">＋</button></div>' +
     '<button class="action-btn" style="margin-top:8px;" onclick="addStock(\'' + esc(item.sku) + '\')">在庫を更新</button></div>' +
-    '<button class="action-btn" style="margin-top:10px;background:var(--card);color:var(--navy);border:1.5px solid var(--navy);" onclick="closeModal();openShipmentFormWithSku(\'' + esc(item.sku) + '\')">この商品で出荷指示を作成</button>',
+    '<button class="action-btn" style="margin-top:10px;background:var(--card);color:var(--navy);border:1.5px solid var(--navy);" onclick="closeModal();openShipmentFormWithSku(\'' + esc(item.sku) + '\')">この商品で出荷指示を作成</button>' +
+    '<button class="action-btn" style="margin-top:10px;background:var(--out-bg);color:var(--out);border:1.5px solid #f3b4b4;" onclick="confirmDeleteItem(\'' + esc(item.sku) + '\')">この商品を削除</button>',
     item.name);
+}
+
+function confirmDeleteItem(sku) {
+  const item = state.items.find(i => i.sku === sku);
+  if (!item) return;
+  showModal(
+    '<div style="font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.6;">「' + esc(item.name) + '」を削除します。この操作は取り消せません。よろしいですか？</div>' +
+    '<button class="action-btn" style="background:var(--out);" onclick="doDeleteItem(\'' + esc(sku) + '\')">削除する</button>' +
+    '<button class="action-btn" style="margin-top:8px;background:var(--card);color:var(--navy);border:1.5px solid var(--navy);" onclick="openItemDetail(\'' + esc(sku) + '\')">キャンセル</button>',
+    '削除の確認');
+}
+
+async function doDeleteItem(sku) {
+  try {
+    const r = await apiJsonp({ action:'deleteItem', sku, staff: state.user });
+    if (r.ok) {
+      state.items = state.items.filter(i => i.sku !== sku);
+      closeModal(); renderInventory();
+      toast('✓ 削除しました');
+    } else toast('エラー: ' + r.error);
+  } catch(e) { toast('通信エラーが発生しました'); }
 }
 
 async function addStock(sku) {
@@ -426,7 +451,7 @@ async function addStock(sku) {
   if (!qty) { toast('数量を入力してください'); return; }
   if (item && item.stock + qty < 0) { toast('在庫がマイナスになります'); return; }
   try {
-    const r = await apiJsonp({ action:'updateStock', sku, delta:qty });
+    const r = await apiJsonp({ action:'updateStock', sku, delta:qty, staff: state.user });
     if (r.ok) { if (item) item.stock = r.newStock; closeModal(); renderInventory(); toast('✓ 更新しました（現在庫: ' + r.newStock + '）'); }
     else toast('エラー: ' + r.error);
   } catch(e) { toast('通信エラーが発生しました'); }
@@ -445,7 +470,7 @@ function openAddItem() {
 }
 
 async function submitAddItem() {
-  const data = { action:'addItem', sku:document.getElementById('new-sku').value.trim(), name:document.getElementById('new-name').value.trim(), stock:document.getElementById('new-stock').value||0, minStock:document.getElementById('new-min').value||0, unit:document.getElementById('new-unit').value||'枚' };
+  const data = { action:'addItem', sku:document.getElementById('new-sku').value.trim(), name:document.getElementById('new-name').value.trim(), stock:document.getElementById('new-stock').value||0, minStock:document.getElementById('new-min').value||0, unit:document.getElementById('new-unit').value||'枚', staff: state.user };
   if (!data.sku || !data.name) { toast('SKUと商品名は必須です'); return; }
   if (state.items.some(i => i.sku === data.sku)) { toast('このSKUは既に登録されています'); return; }
   try {
@@ -566,7 +591,7 @@ function filterLog(method, btn) {
 function renderHistory(filter) {
   const logs = filter === 'all' ? state.logs : state.logs.filter(l => l.method === filter);
   if (!logs.length) { document.getElementById('history-list').innerHTML = '<div class="empty">履歴がありません</div>'; return; }
-  const ml = { email:'メール', fax:'FAX', print:'印刷' };
+  const ml = { email:'メール', fax:'FAX', print:'印刷', add:'追加登録', adjust:'在庫調整', delete:'削除' };
   document.getElementById('history-list').innerHTML = logs.map(l =>
     '<div class="log-item"><div class="log-dot" style="background:' + (l.qty<0?'#185fa5':'#3b6d11') + ';"></div>' +
     '<div class="log-info"><div class="log-name">' + esc(l.name) + '</div><div class="log-meta">' + esc(l.date) + ' · ' + (ml[l.method]||l.method) + ' · ' + esc(l.dest) + ' · ' + esc(l.staff) + '</div></div>' +
