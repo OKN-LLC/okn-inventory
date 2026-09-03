@@ -232,7 +232,7 @@ let state = { user:'', items:[], logs:[], shipMethod:'email', searchQuery:'', st
 // ─── JSONPでAPIを呼ぶ（CORSを回避）───
 function apiJsonp(params) {
   return new Promise((resolve, reject) => {
-    const cbName = 'cb_' + Date.now();
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     params.callback = cbName;
     const url = API_URL + '?' + new URLSearchParams(params).toString();
     const script = document.createElement('script');
