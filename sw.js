@@ -1,10 +1,12 @@
-// OKN在庫管理 Service Worker v1.1
-const CACHE = 'okn-inventory-v2';
+// OKN在庫管理 Service Worker v1.2
+const CACHE = 'okn-inventory-v3';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c =>
+      Promise.all(ASSETS.map(url => fetch(url, { cache: 'reload' }).then(res => c.put(url, res))))
+    ).then(() => self.skipWaiting())
   );
 });
 
