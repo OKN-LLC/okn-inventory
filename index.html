@@ -379,7 +379,7 @@ function packingInfo(item) {
   if (tiers)   parts.push(tiers + '段');
   if (packs)   parts.push(packs + 'パック');
   if (loose)   parts.push('バラ' + loose + '枚');
-  return parts.join(' ');
+  return parts.map(x => '<span style="white-space:nowrap;">' + x + '</span>').join(' ');
 }
 
 function renderInventory() {
@@ -405,8 +405,11 @@ function renderInventory() {
     return '<div class="item-card" onclick="openItemDetail(\'' + esc(item.sku) + '\')">' +
       '<div class="item-row">' +
       '<div class="item-icon ' + status + '">📦</div>' +
-      '<div class="item-info"><div class="item-name">' + esc(item.name) + '</div><div class="item-sku">SKU: ' + esc(item.sku) + '</div>' + (packingInfo(item) ? '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:2px;">' + packingInfo(item) + '</div>' : '') + '</div>' +
+      '<div class="item-info"><div class="item-name">' + esc(item.name) + '</div><div class="item-sku">SKU: ' + esc(item.sku) + '</div>' + '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;">' +
       '<div class="stock-pill pill-' + status + '">' + item.stock + esc(item.unit) + '</div>' +
+      (packingInfo(item) ? '<div style="font-size:11px;font-weight:600;color:var(--navy);margin-top:4px;text-align:right;max-width:120px;line-height:1.35;">' + packingInfo(item) + '</div>' : '') +
+      '</div>' +
       '</div>' +
       '<div class="stock-bar"><div class="stock-bar-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
       '</div>';
@@ -433,10 +436,9 @@ function openItemDetail(sku) {
     '<div class="item-info"><div class="item-name" style="font-size:16px;">' + esc(item.name) + '</div><div class="item-sku">SKU: ' + esc(item.sku) + '</div></div>' +
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">' +
-    '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.stock + '</div><div style="font-size:11px;color:var(--muted);">現在庫</div></div>' +
+    '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.stock + '</div><div style="font-size:11px;color:var(--muted);">現在庫</div>' + (packingInfo(item) ? '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-top:4px;line-height:1.4;">' + packingInfo(item) + '</div>' : '') + '</div>' +
     '<div style="background:#f4f6f9;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:24px;font-weight:700;">' + item.minStock + '</div><div style="font-size:11px;color:var(--muted);">最低在庫</div></div>' +
     '</div>' +
-    (packingInfo(item) ? '<div style="background:#eef4fb;border-radius:10px;padding:10px;text-align:center;margin:-8px 0 16px;font-size:15px;font-weight:700;color:var(--navy);">' + packingInfo(item) + '</div>' : '') +
     '<div class="field"><div class="form-label">在庫を調整（入庫はプラス、訂正はマイナス）</div>' +
     '<div class="qty-stepper"><button type="button" class="qty-step-btn" onclick="stepQty(\'add-qty\',-1)">−</button>' +
     '<input class="form-input" type="number" id="add-qty" placeholder="数量">' +
