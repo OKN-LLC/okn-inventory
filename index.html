@@ -364,6 +364,7 @@ function onSearchInput(v) {
 // perPallet: 1パレットの枚数 / perTier: 1段の枚数 / perPack: 1パックの枚数
 const PACKING = {
   'BS-300*300-185405': { perPallet:112, perTier:16, perPack:4 }  // NEW防音シート1854（1パック4枚・1段4パック16枚・1パレット112枚）
+  ,'BS-185105': { perPallet:120, perTier:20, perPack:5 }  // 防音シート1851（1パック5枚・1段4パック20枚・1パレット6段120枚）
 };
 function packingInfo(item) {
   const p = PACKING[item.sku];
