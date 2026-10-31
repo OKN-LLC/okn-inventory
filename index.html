@@ -361,9 +361,9 @@ function onSearchInput(v) {
 }
 
 // ─── 荷姿（パレット/段/バラ）設定 ───
-// perPallet: 1パレットの枚数 / perTier: 1段の枚数
+// perPallet: 1パレットの枚数 / perTier: 1段の枚数 / perPack: 1パックの枚数
 const PACKING = {
-  'BS-300*300-185405': { perPallet:112, perTier:16 }  // NEW防音シート1854（1パック4枚・1段4パック16枚・1パレット112枚）
+  'BS-300*300-185405': { perPallet:112, perTier:16, perPack:4 }  // NEW防音シート1854（1パック4枚・1段4パック16枚・1パレット112枚）
 };
 function packingInfo(item) {
   const p = PACKING[item.sku];
@@ -371,10 +371,13 @@ function packingInfo(item) {
   const pallets = Math.floor(item.stock / p.perPallet);
   const rest    = item.stock % p.perPallet;
   const tiers   = Math.floor(rest / p.perTier);
-  const loose   = rest % p.perTier;
+  const rem     = rest % p.perTier;
+  const packs   = p.perPack ? Math.floor(rem / p.perPack) : 0;
+  const loose   = p.perPack ? rem % p.perPack : rem;
   const parts = [];
   if (pallets) parts.push(pallets + 'パレット');
   if (tiers)   parts.push(tiers + '段');
+  if (packs)   parts.push(packs + 'パック');
   if (loose)   parts.push('バラ' + loose + '枚');
   return parts.join(' ');
 }
